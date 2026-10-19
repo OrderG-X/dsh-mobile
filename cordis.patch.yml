@@ -1,0 +1,4 @@
+# Bundle patch for dsh-mobile: inserts the plugin row into the DSH profile.
+- insert:
+    - id: mobile
+      name: dsh-mobile

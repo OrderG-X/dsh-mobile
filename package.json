@@ -1,0 +1,59 @@
+{
+  "name": "dsh-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scan a QR code and use DSH from your phone's browser: watch the tasks running on your computer, reply and approve, live. Same Wi-Fi works out of the box; turn on a free Cloudflare tunnel to use it anywhere. One-time QR pairing, per-device access you can revoke.",
+  "license": "MIT",
+  "author": "OrderG-X",
+  "homepage": "https://github.com/OrderG-X/dsh-mobile",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OrderG-X/dsh-mobile.git"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "mobile",
+    "phone",
+    "remote",
+    "qr-code",
+    "cloudflare-tunnel"
+  ],
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./icon.svg": "./icon.svg",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "assets",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "icon": "./icon.svg",
+  "scripts": {
+    "test": "node --test test/*.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
+    }
+  }
+}
