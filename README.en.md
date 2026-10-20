@@ -19,8 +19,7 @@ A phone front end for DSH (DeepSeek Harness). DSH's settings page on your comput
 
 No app to install, no account, and no third-party server holding your data:
 
-- **Same Wi-Fi**: the phone talks to your computer directly.
-- **Anywhere**: turn on a free Cloudflare tunnel (no sign-up) and it works over mobile data.
+- **One QR code, anywhere**: it works on Wi-Fi at home and on mobile data outside. Outside access uses a free Cloudflare tunnel (no sign-up), set up automatically when you turn phone access on.
 - **Pairing by QR**: each code works once and expires in 10 minutes; every phone gets its own credential, which you can remove at any time — the phone is disconnected immediately.
 
 ## Install
@@ -33,11 +32,14 @@ dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/d
 
 ## Use
 
-1. On the computer: DSH → Plugins → Mobile, turn on "Allow phone access".
-2. Put the phone on the same Wi-Fi and scan the "Same Wi-Fi" code with the camera.
-3. To use it away from home: switch to "Anywhere" → the first time, click "Download cloudflared" (Cloudflare's official binary, about 20 MB) → turn on "Allow access from anywhere" → scan that code.
+1. On the computer: click the phone button in the session header (or DSH → Plugins → Mobile) and turn on "Allow phone access".
+2. Scan the QR code with the phone camera. When it is tagged "Wi-Fi or mobile data", it works anywhere.
 
-After the first scan, just open the same address on the phone (add it to the home screen). When DSH restarts, the Wi-Fi address stays the same; the Anywhere address changes every time, so scan once more.
+The first time, Cloudflare's official cloudflared (about 20 MB) is downloaded automatically, which takes about half a minute; meanwhile the card shows a same-Wi-Fi code and swaps it when outside access is ready. To keep it to your home network, turn off "Also work outside".
+
+After the first scan, just open the same address on the phone (add it to the home screen). The address survives DSH restarts, so no rescan; it changes when the computer restarts or phone access is turned off, so scan once more then.
+
+While a phone is connected, the phone button in the header shows a green dot. If you cannot scan, use "Copy link" and open it on the phone (valid for 10 minutes, works once).
 
 ## How it works
 
@@ -47,7 +49,7 @@ The plugin runs a small gateway inside DSH (port 18765 by default) and forwards 
 - The phone's own credential is issued by the gateway (HttpOnly, SameSite=Strict). Only its hash is stored on disk.
 - The local network is plain HTTP, which lacks some "secure context" browser APIs; the gateway adds the one DSH needs.
 - When a live connection is idle, the gateway sends keepalive pings toward the phone so tunnels and carriers don't drop it.
-- Anywhere access uses `cloudflared tunnel --url` (a trycloudflare.com quick tunnel): Cloudflare forwards HTTPS traffic to the gateway on your computer, and the gateway's pairing still guards the door.
+- Outside access uses `cloudflared tunnel --url` (a trycloudflare.com quick tunnel): Cloudflare forwards HTTPS traffic to the gateway on your computer, and the gateway's pairing still guards the door.
 
 ## Security
 
@@ -55,7 +57,7 @@ A paired phone can make DSH work on this computer, just like sitting at it. So:
 
 - Only scan with your own phone; don't send the QR code to anyone or post a screenshot.
 - If a phone gets lost, remove it under "Paired phones".
-- Same-Wi-Fi mode is plain HTTP: on public Wi-Fi, use Anywhere (HTTPS) instead.
+- Same-Wi-Fi mode is plain HTTP: on public Wi-Fi, use the outside code (HTTPS, tagged "Wi-Fi or mobile data") instead.
 - Turn off "Allow phone access" when you don't need it; the gateway stops listening.
 
 Data lives in `~/.dsh/dsh-mobile/`: `state.json` (switches), `devices.json` (paired phones, 0600), `mobile.log`, and `bin/cloudflared` if downloaded.
@@ -64,7 +66,7 @@ Data lives in `~/.dsh/dsh-mobile/`: `state.json` (switches), `devices.json` (pai
 
 - Nothing works while the computer sleeps or DSH is closed.
 - The phone shows DSH's web UI as is; there is no phone-specific layout.
-- Anywhere access uses Cloudflare's free quick tunnels, which have no uptime guarantee, and the address changes on every restart.
+- Outside access uses Cloudflare's free quick tunnels, which have no uptime guarantee. To keep the address, the tunnel keeps running in the background when DSH quits (it uses almost nothing) and is picked up again next time; turning off phone access stops it.
 - Tested with DSH desktop on macOS only; the cloudflared download paths for Windows and Linux are written but untested.
 
 ## Development

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Mobile",
-    "description": "Scan a QR code and use DSH from your phone's browser: watch the tasks running on your computer live, reply and approve. Works on the same Wi-Fi out of the box; turn on a free Cloudflare tunnel to use it anywhere. One-time QR pairing, and you can remove any phone at any time."
+    "description": "Scan a QR code and use DSH from your phone's browser: watch the tasks running on your computer live, reply and approve. One QR code works on Wi-Fi at home and on mobile data outside (a free Cloudflare tunnel is set up automatically, no account). One-time QR pairing, and you can remove any phone at any time."
   }
 }

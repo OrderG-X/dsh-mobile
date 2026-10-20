@@ -243,21 +243,25 @@ function wsConnect(port, cookie, origin, p = '/api/ws') {
   })
 }
 
-test('WebSocket：配对的能升级，没配对的 401；移除设备立刻断开', async (t) => {
+test('WebSocket：配对的能升级，没配对的 401；连着就算在线；移除设备立刻断开', async (t) => {
   const { port, pair, store, gw } = await setup(t)
   const no = await wsConnect(port, '', `http://192.168.1.5:${port}`)
   assert.match(no.head, /401/)
   no.s.destroy()
   const c = await pair()
+  const id = store.list()[0].id
+  assert.equal(gw.online(id), false)
   const yes = await wsConnect(port, c, `http://192.168.1.5:${port}`)
   assert.match(yes.head, /101/)
+  assert.equal(gw.online(id), true)
   const echo = await new Promise((resolve) => { yes.s.once('data', (d) => resolve(String(d))); yes.s.write('ping') })
   assert.equal(echo, 'echo:ping')
   const closed = new Promise((resolve) => yes.s.once('close', resolve))
-  const id = store.list()[0].id
   store.remove(id)
   gw.kick(id)
   await closed
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(gw.online(id), false)
   assert.equal((await request(port, { path: '/api/echo', headers: { cookie: c } })).status, 401)
 })
 
