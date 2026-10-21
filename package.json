@@ -32,7 +32,9 @@
   "files": [
     "lib",
     "locale",
-    "assets",
+    "assets/hero.svg",
+    "assets/how-it-works.svg",
+    "assets/how-it-works.en.svg",
     "icon.svg",
     "cordis.patch.yml",
     "README.md",

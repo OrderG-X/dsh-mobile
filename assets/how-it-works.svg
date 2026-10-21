@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="330" viewBox="0 0 760 330" font-family="-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;PingFang SC&quot;,&quot;Microsoft YaHei&quot;,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1322"/><stop offset="1" stop-color="#121b33"/></linearGradient>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#8ea0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#58c46b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+  <rect width="760" height="330" rx="18" fill="url(#bg)"/>
+  <rect x=".5" y=".5" width="759" height="329" rx="17.5" fill="none" stroke="#26304d"/>
+  <!-- 手机 -->
+  <rect x="40" y="62" width="104" height="186" rx="20" fill="#161b2b" stroke="#3b4566" stroke-width="2"/>
+  <rect x="74" y="72" width="36" height="9" rx="4.5" fill="#0b0e17"/>
+  <rect x="54" y="96" width="76" height="10" rx="5" fill="#2b3350"/>
+  <rect x="64" y="114" width="66" height="22" rx="8" fill="#4d6bfe" opacity=".85"/>
+  <rect x="54" y="144" width="60" height="8" rx="4" fill="#2b3350"/>
+  <rect x="54" y="158" width="70" height="8" rx="4" fill="#2b3350"/>
+  <rect x="54" y="210" width="76" height="22" rx="9" fill="#202740" stroke="#323b5c"/>
+  <text x="92" y="276" text-anchor="middle" font-size="14" font-weight="700" fill="#e8ebf5">你的手机</text>
+  <text x="92" y="296" text-anchor="middle" font-size="11" fill="#8b93ad">手机浏览器 · 不用装 App</text>
+  <!-- 两条路 -->
+  <path d="M160 118 H 416" stroke="#58c46b" stroke-width="2.2" stroke-dasharray="1 0" marker-end="url(#ag)" fill="none"/>
+  <rect x="190" y="96" width="196" height="24" rx="12" fill="#13261b" stroke="#2c5a37"/>
+  <text x="288" y="112" text-anchor="middle" font-size="11.5" font-weight="600" fill="#7fdc8f">局域网模式：同一个 Wi-Fi 直连</text>
+  <path d="M160 196 C 230 196, 250 238, 288 238 C 326 238, 346 196, 416 196" stroke="#8ea0ff" stroke-width="2.2" stroke-dasharray="6 6" marker-end="url(#ar)" fill="none"/>
+  <rect x="176" y="224" width="224" height="24" rx="12" fill="#18204a" stroke="#34408a"/>
+  <text x="288" y="240" text-anchor="middle" font-size="11.5" font-weight="600" fill="#aab8ff">外网模式：Cloudflare 免费隧道（HTTPS）</text>
+  <circle cx="288" cy="174" r="15" fill="#f38020" opacity=".14"/>
+  <path d="M280 178a6 6 0 0 1 1-11.6 8 8 0 0 1 15.2 2.1 4.6 4.6 0 0 1-.6 9.5z" fill="#f38020"/>
+  <!-- 电脑 -->
+  <rect x="428" y="44" width="292" height="226" rx="14" fill="#141a2b" stroke="#3b4566" stroke-width="2"/>
+  <circle cx="446" cy="60" r="4" fill="#ff5f57"/><circle cx="460" cy="60" r="4" fill="#febc2e"/><circle cx="474" cy="60" r="4" fill="#28c840"/>
+  <text x="574" y="64" text-anchor="middle" font-size="11" fill="#7d859f">你的电脑</text>
+  <rect x="448" y="86" width="252" height="66" rx="11" fill="#1d2440" stroke="#4d6bfe" stroke-width="1.5"/>
+  <rect x="462" y="100" width="38" height="38" rx="10" fill="#4d6bfe"/>
+  <rect x="475" y="107" width="12" height="24" rx="3" fill="none" stroke="#fff" stroke-width="2"/>
+  <text x="512" y="116" font-size="13.5" font-weight="700" fill="#eef1ff">手机端网关 <tspan font-size="11" font-weight="500" fill="#8b93ad">:18765</tspan></text>
+  <text x="512" y="135" font-size="11" fill="#9aa4c6">配对门禁 · 每台手机一张凭证</text>
+  <path d="M574 152 V 176" stroke="#5c6890" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="448" y="180" width="252" height="66" rx="11" fill="#1a1f2e" stroke="#343c56"/>
+  <rect x="462" y="194" width="38" height="38" rx="10" fill="#222a45"/>
+  <rect x="470" y="203" width="22" height="16" rx="5" fill="none" stroke="#8ea0ff" stroke-width="2"/><path d="M475 219l-1 6 6-6" fill="#8ea0ff" stroke="#8ea0ff" stroke-width="1.5" stroke-linejoin="round"/><path d="M475 209h12M475 214h8" stroke="#8ea0ff" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="512" y="210" font-size="13.5" font-weight="700" fill="#eef1ff">DSH 网页端</text>
+  <text x="512" y="229" font-size="11" fill="#9aa4c6">同一批会话，实时同步</text>
+  <!-- 底部要点 -->
+  <g font-size="11" fill="#9aa4c6">
+    <circle cx="56" cy="312" r="3" fill="#58c46b"/><text x="66" y="316">二维码只能用一次、10 分钟过期</text>
+    <circle cx="300" cy="312" r="3" fill="#58c46b"/><text x="310" y="316">凭证只存哈希，随时移除</text>
+    <circle cx="518" cy="312" r="3" fill="#58c46b"/><text x="528" y="316">不经过任何第三方服务器存数据</text>
+  </g>
+</svg>

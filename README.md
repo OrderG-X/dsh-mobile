@@ -6,6 +6,8 @@
   <a href="https://github.com/OrderG-X/dsh-mobile/releases"><img src="https://img.shields.io/github/v/release/OrderG-X/dsh-mobile?label=release&color=4D6BFE" alt="release" /></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" />
   <a href="https://github.com/awesome-dsh-plugin/awesome-dsh-plugin"><img src="https://img.shields.io/badge/DSH-plugin-4D6BFE" alt="DSH plugin" /></a>
+  <img src="https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white" alt="macOS" />
+  <img src="https://img.shields.io/badge/不用装%20App-不用注册-3fb950" alt="不用装 App，不用注册" />
 </p>
 
 <p>
@@ -13,14 +15,23 @@
   <a href="README.en.md">English</a>
 </p>
 
+**电脑上的 DSH 跑着任务，人出门了？手机扫一下，接着看、接着发消息。**
+
 </div>
 
-DSH（DeepSeek Harness）的手机端：电脑上的 DSH 设置页里亮一个二维码，手机相机一扫，手机浏览器里就是电脑上的那个 DSH——同一批会话、实时同步。任务跑着的时候出门，也能在手机上看进度、接着发消息、点批准。
+<p align="center">
+  <img src="assets/demo.gif" alt="电脑上打开手机访问，手机扫码，手机上发消息，两边实时同步" width="880" />
+</p>
+<p align="center"><sub>演示动画，内容是示例数据。</sub></p>
 
-不用装 App，不用注册账号，也没有第三方服务器存你的数据：
+## 有什么好
 
-- **一个二维码走到哪都能用**：在家连 Wi-Fi、出门用流量都能扫。外网走 Cloudflare 的免费隧道（不用注册），打开手机访问时自动准备好。
-- **配对要扫码**：二维码只能用一次、10 分钟过期；每台手机一张凭证，设置页里随时移除，移除后那台手机立刻断开。
+| | |
+|---|---|
+| 📱 **扫一下就能用** | 不用装 App、不用注册账号。手机相机扫码，手机浏览器里就是电脑上那个 DSH。 |
+| 🔄 **同一批会话，实时同步** | 手机上发的消息，电脑上同时出现；模型干到哪，手机上实时看得到。 |
+| 🌍 **在哪都能连** | 在家连 Wi-Fi、出门用流量都行。外网走 Cloudflare 免费隧道，打开开关就自动准备好。 |
+| 🔐 **只认你配过的手机** | 二维码只能用一次、10 分钟过期；每台手机一张凭证，随时移除，移除立刻断开。 |
 
 ## 安装
 
@@ -32,42 +43,87 @@ dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/d
 
 ## 怎么用
 
-1. 电脑上：点会话顶栏的手机按钮（或 DSH →「插件」→「手机端」），打开「允许手机访问」。
-2. 用手机相机扫出现的二维码。标着「Wi-Fi 和流量都能用」就是在哪都能扫的码。
+1. **电脑上**：点会话顶栏的手机按钮（或 DSH →「插件」→「手机端」），打开「允许手机访问」。
+2. **手机上**：用相机扫出现的二维码。标着「Wi-Fi 和流量都能用」的码在哪都能扫。
+3. **以后**：直接在手机上打开那个地址就行，建议「添加到主屏幕」。DSH 重启后地址不变，不用重扫。
 
-第一次打开时会自动下载 Cloudflare 的官方程序 cloudflared（约 20 MB），大约半分钟；这期间先显示只能同一 Wi-Fi 扫的码，好了自动换掉。只想在家里用，就关掉「外网也能用」。
+手机连着时，顶栏的手机按钮会亮绿点。扫不了码就点「复制链接」，发到手机上打开（10 分钟内有效、只能用一次）。
 
-扫过一次，之后在手机上直接打开那个地址就行（建议「添加到主屏幕」）。DSH 重启后地址不变，不用重扫；电脑重启、关掉「允许手机访问」或在 DSH 里停用 / 卸载这个插件后地址会换，要重扫一次。
-
-手机连着时，顶栏的手机按钮会亮绿点。扫不了码时点「复制链接」，发到手机上打开也行（10 分钟内有效、只能用一次）。
+> 第一次打开外网时会自动下载 Cloudflare 的官方程序 cloudflared（约 20 MB），大约半分钟。这期间先显示只能同一 Wi-Fi 扫的码，好了自动换掉。只想在家用，就关掉「外网也能用」。
 
 ## 原理
 
-插件在 DSH 里起一个小网关（默认端口 18765），把手机的请求转给本机的 DSH 网页端。手机上跑的就是 DSH 官方网页界面，所以会话、审批、设置都和电脑上一模一样。
+<p align="center"><img src="assets/how-it-works.svg" alt="手机经局域网或 Cloudflare 隧道连到电脑上的手机端网关，网关验过配对再转给 DSH 网页端" width="760" /></p>
 
-- DSH 桌面版的网页端要登录：网关在 DSH 进程里用启动口令换一张登录 Cookie，替手机带上；这张 Cookie 不会发到手机上。
-- 手机自己的凭证是网关发的（HttpOnly、SameSite=Strict）。盘上只存它的哈希。凭证只在配对时走的那条路上有效：Wi-Fi（明文）配的拿到外网隧道上用不了。
+插件在 DSH 里起一个小网关（默认端口 18765），把手机的请求转给本机的 DSH 网页端。手机上跑的就是 DSH 官方网页界面，会话、设置都和电脑上一样。
+
+<details>
+<summary><b>技术细节</b></summary>
+
+- DSH 桌面版的网页端要登录：网关在 DSH 进程里用启动口令换一张登录 Cookie，替手机带上。这张 Cookie 不会发到手机上。
+- 手机自己的凭证由网关发（HttpOnly、SameSite=Strict），盘上只存哈希。凭证只在配对时走的那条路上有效：Wi-Fi（明文）配的拿到外网隧道上用不了。
 - 「手机端」的设置（开关、二维码、已配对的手机）只能在电脑上的 DSH 里管理，手机上读不到配对码。
 - 局域网是明文 HTTP，浏览器少了一些「安全上下文」才有的接口，网关会给页面补上 DSH 需要的那个。
-- 长连接（实时事件）空闲时，网关往手机方向发保活包，免得被隧道或运营商当成死连接掐断。
+- 长连接空闲时，网关往手机方向发保活包，免得被隧道或运营商当成死连接掐断。
 - 外网用 `cloudflared tunnel --url`（trycloudflare.com 快速隧道）：Cloudflare 把 HTTPS 流量转到你电脑上的网关，门禁照旧是网关的配对。
+- 为了地址不变，DSH 退出时隧道程序留在后台（几乎不占资源），下次打开 DSH 接着用；关掉「允许手机访问」就会停掉它。
+
+</details>
 
 ## 安全
 
-扫过码的手机能让 DSH 在这台电脑上干活，和你坐在电脑前一样。所以：
+扫过码的手机能让 DSH 在这台电脑上干活，跟你坐在电脑前一样。所以：
 
-- 只用自己的手机扫，别把二维码发给别人、别截图到群里。
-- 手机丢了，就在「已配对的手机」里移除它。
-- 同一个 Wi-Fi 下走的是明文 HTTP：公共 Wi-Fi 上别用局域网模式，用外网（HTTPS）。
-- 不用的时候关掉「允许手机访问」，网关就不监听了。
+| 情况 | 怎么做 |
+|---|---|
+| 二维码 | 只用自己的手机扫，别发给别人、别截图到群里 |
+| 手机丢了 | 在「已配对的手机」里移除它，立刻断开 |
+| 公共 Wi-Fi | 局域网模式是明文 HTTP，别用；用外网（HTTPS） |
+| 不用的时候 | 关掉「允许手机访问」，网关就不再监听 |
 
-数据都在 `~/.dsh/dsh-mobile/`：`state.json`（开关）、`devices.json`（已配对的手机，0600）、`mobile.log`、`bin/cloudflared`（下载的话）。
+数据都在 `~/.dsh/dsh-mobile/`：`state.json`（开关）、`devices.json`（已配对的手机，0600）、`mobile.log`、`tunnel.json` 和 `cloudflared.log`（外网隧道）、`bin/cloudflared`（下载的话）。
+
+## 常见问题
+
+<details>
+<summary><b>要装 App 吗？</b></summary>
+
+不用装。用手机相机扫码，在手机浏览器里打开就是。
+
+</details>
+
+<details>
+<summary><b>换了地方 / 电脑重启了，要重新扫吗？</b></summary>
+
+DSH 重启不用。电脑重启、关掉「允许手机访问」、在 DSH 里停用或卸载这个插件之后，外网地址会换，要重新扫一次。
+
+</details>
+
+<details>
+<summary><b>在中国大陆用流量为什么慢？</b></summary>
+
+Cloudflare 的免费线路在大陆没有节点，请求会先绕到国外再回来。在家用的话，关掉「外网也能用」，走局域网直连，速度就是本机级别。
+
+</details>
+
+<details>
+<summary><b>别人捡到我的二维码能连吗？</b></summary>
+
+二维码只能用一次、10 分钟过期。已经被你扫过的码再扫就失效。真被别人先扫了，在「已配对的手机」里能看到，移除就行。
+
+</details>
+
+<details>
+<summary><b>电脑睡着了还能连吗？</b></summary>
+
+不能。电脑睡眠或 DSH 关着时连不上。
+
+</details>
 
 ## 限制
 
-- 电脑睡眠或 DSH 关着时连不上。
 - 手机上的界面就是 DSH 网页版，没有专门为手机重新排版。
-- 外网用的是 Cloudflare 免费快速隧道，没有可用性保证。为了地址不变，DSH 退出时隧道程序会留在后台（几乎不占资源），下次打开 DSH 接着用；关掉「允许手机访问」就会停掉它。
+- 外网用的是 Cloudflare 免费快速隧道，没有可用性保证。
 - 只测过 macOS 上的 DSH 桌面版；Windows / Linux 上的 cloudflared 下载路径写了，没实测。
 
 ## 开发
