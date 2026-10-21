@@ -5,7 +5,7 @@ import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { createTunnel, assetFor, killStale } from '../lib/tunnel.js'
+import { createTunnel, assetFor, killStale, downloadCloudflared, cloudflaredCmdMatches } from '../lib/tunnel.js'
 
 // 假的 cloudflared：进程 + 它的本机状态接口（/quicktunnel、/ready）+ 进程表
 function fakeWorld() {
@@ -228,4 +228,101 @@ test('残留进程：pid 文件指向的不是 cloudflared 就不杀', () => {
   assert.equal(fs.existsSync(f), false)
   assert.equal(killStale(f), false) // 没有 pid 文件
   fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('cloudflared 的空配置放在数据目录（0600）；写不进去就不起', async () => {
+  const dir = tmp()
+  const w = fakeWorld()
+  const t = createTunnel(w.opts(dir))
+  t.start()
+  await until(() => w.kids.length === 1)
+  const c = w.kids[0]
+  const cfg = c.args[c.args.indexOf('--config') + 1]
+  assert.equal(cfg, path.join(dir, 'cloudflared.yml'))
+  assert.equal(fs.readFileSync(cfg, 'utf8'), '{}\n')
+  assert.equal(fs.statSync(cfg).mode & 0o777, 0o600)
+  t.stop()
+
+  const bad = createTunnel(w.opts(dir, { configFile: dir })) // 是个目录，写不进去
+  bad.start()
+  await until(() => bad.status.state === 'error')
+  assert.match(bad.status.error, /config/)
+  assert.equal(w.kids.length, 1, '没起 cloudflared')
+  bad.stop()
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('杀之前核对命令行：--metrics 端口和 --url 都对得上才杀；接管来的也一样', async () => {
+  const dir = tmp()
+  const w = fakeWorld()
+  const { t, c } = await runningTunnel(w, dir)
+  t.detach()
+  const asked = []
+  let ok = true
+  const t2 = createTunnel(w.opts(dir, { verify: (pid, exp) => { asked.push({ pid, ...exp }); return ok } }))
+  t2.start()
+  await until(() => t2.status.state === 'on')
+  assert.equal(w.kids.length, 1, '认回来了')
+  assert.ok(asked.length > 0)
+  for (const a of asked) assert.deepEqual(a, { pid: c.pid, metrics: w.metricsPort(c), target: 'http://127.0.0.1:18765' })
+  ok = false // 比如 pid 已经被别的程序复用了
+  t2.stop()
+  assert.deepEqual(w.killed, [], '对不上就不杀')
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('命令行核对', () => {
+  const cmd = '/opt/homebrew/bin/cloudflared tunnel --no-autoupdate --protocol http2 --config /Users/a b/.dsh/dsh-mobile/cloudflared.yml --metrics 127.0.0.1:30001 --url http://127.0.0.1:18765'
+  const target = 'http://127.0.0.1:18765'
+  assert.equal(cloudflaredCmdMatches(cmd, { metrics: 30001, target }), true)
+  assert.equal(cloudflaredCmdMatches(cmd, { metrics: 3000, target }), false)
+  assert.equal(cloudflaredCmdMatches(cmd, { metrics: 30001, target: 'http://127.0.0.1:1876' }), false)
+  assert.equal(cloudflaredCmdMatches(cmd, { metrics: 30001, target: 'http://127.0.0.1:18766' }), false)
+  assert.equal(cloudflaredCmdMatches(cmd), true)
+  assert.equal(cloudflaredCmdMatches('/usr/bin/vim --url x'), false)
+  assert.equal(cloudflaredCmdMatches('/x/cloudflared tunnel login'), false)
+})
+
+test('下载 cloudflared 时写盘出错 / 正文中途断了：报错（不卡住、不冒未处理异常），不留半截文件', async () => {
+  if (!assetFor()) return
+  const part = (dir) => path.join(dir, `.${assetFor().name}.${process.pid}.part`)
+  const fetchOf = (gen) => async () => ({ ok: true, status: 200, headers: { get: () => null }, body: gen() })
+  const within = (p) => Promise.race([p.then(() => 'resolved', (e) => `rejected:${e.code || e.message}`), new Promise((r) => setTimeout(() => r('hung'), 2000))])
+  const uncaught = []
+  const onUncaught = (e) => uncaught.push(e)
+  process.on('uncaughtException', onUncaught)
+  try {
+    // 1) .part 的位置是个目录：一打开就失败（空正文 / 大正文触发背压两种）
+    for (const chunks of [[], [Buffer.alloc(1 << 20), Buffer.alloc(1 << 20), Buffer.alloc(1 << 20)]]) {
+      const dir = tmp()
+      fs.mkdirSync(part(dir))
+      const r = await within(downloadCloudflared(dir, { fetchImpl: fetchOf(async function* () { for (const c of chunks) { yield c; await tick(5) } }) }))
+      assert.equal(r, 'rejected:EISDIR')
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+    // 2) 正文第一块都没到就断了：不留半截文件（写入流还在打开时就出错）
+    for (const sync of [true, false]) {
+      const d = tmp()
+      const r = await within(downloadCloudflared(d, { fetchImpl: fetchOf(async function* () { if (!sync) await Promise.resolve(); throw new Error('socket hang up') }) }))
+      assert.equal(r, 'rejected:socket hang up')
+      await tick(50)
+      assert.deepEqual(fs.readdirSync(d), [])
+      fs.rmSync(d, { recursive: true, force: true })
+    }
+    // 3) 正文下到一半断了
+    const dir = tmp()
+    const got = []
+    const r = await within(downloadCloudflared(dir, {
+      onProgress: (p) => got.push(p.got),
+      fetchImpl: fetchOf(async function* () { yield Buffer.alloc(1000); await tick(5); throw new Error('socket hang up') }),
+    }))
+    assert.equal(r, 'rejected:socket hang up')
+    assert.deepEqual(got, [1000])
+    assert.equal(fs.existsSync(part(dir)), false)
+    fs.rmSync(dir, { recursive: true, force: true })
+    await tick(50)
+    assert.deepEqual(uncaught, [])
+  } finally {
+    process.off('uncaughtException', onUncaught)
+  }
 })

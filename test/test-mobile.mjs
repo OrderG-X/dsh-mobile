@@ -6,7 +6,7 @@ import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { createStore } from '../lib/store.js'
-import { createMobile } from '../lib/index.js'
+import { createMobile, keepTunnelOnDispose } from '../lib/index.js'
 
 const tick = (ms = 10) => new Promise((r) => setTimeout(r, ms))
 
@@ -171,5 +171,89 @@ test('设备列表带在线状态', async () => {
   const s = mobile.state()
   assert.equal(s.devices.length, 1)
   assert.equal(s.devices[0].online, false)
+  await done()
+})
+
+test('移除设备 / 全部移除：当前配对码一起作废', async () => {
+  const { store, mobile, done } = await setup({ installed: true })
+  await mobile.act({ action: 'enable', on: true })
+  const code = store.currentCode().value
+  const { device } = store.pair(code, {})
+  const seen = store.currentCode().value // 手机可能看到过的码
+  await mobile.act({ action: 'remove', id: device.id })
+  assert.equal(store.pair(seen, {}), null)
+  const seen2 = store.currentCode().value
+  await mobile.act({ action: 'removeAll' })
+  assert.equal(store.pair(seen2, {}), null)
+  assert.equal(store.list().length, 0)
+  await done()
+})
+
+const listening = (port) => new Promise((r) => { const c = net.connect(port, '127.0.0.1'); c.once('connect', () => { c.destroy(); r(true) }); c.once('error', () => r(false)) })
+
+test('刚打开就又关掉：网关不留监听、隧道不会被重新拉起', async () => {
+  for (const gap of [() => null, () => new Promise((r) => setImmediate(r))]) {
+    const { store, mobile, calls, done } = await setup({ installed: true })
+    const on = mobile.act({ action: 'enable', on: true })
+    await gap()
+    const off = mobile.act({ action: 'enable', on: false })
+    await Promise.all([on, off])
+    const s = mobile.state()
+    assert.equal(s.enabled, false)
+    assert.equal(s.running, false)
+    assert.equal(await listening(store.state.port), false)
+    assert.equal(mobile.tunnel.status.state, 'off', '关掉之后隧道没被重新拉起')
+    assert.ok(calls.stop >= calls.start)
+    await done()
+  }
+})
+
+test('停用 / 卸载插件：隧道跟着关；DSH 退出才留着', async () => {
+  const { mobile, calls, done } = await setup({ installed: true })
+  await mobile.act({ action: 'enable', on: true })
+  await mobile.shutdown({ keep: false })
+  assert.equal(calls.detach, 0)
+  assert.ok(calls.stop >= 1)
+  await done()
+
+  const UNLOADING = 5
+  const ACTIVE = 2
+  const ctx = (rootState, uid, entry) => ({ root: { fiber: { state: rootState } }, fiber: { uid, entry } })
+  assert.equal(keepTunnelOnDispose(ctx(UNLOADING, null)), true, 'DSH 退出：整棵树在拆')
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, null)), false, '只拆了这个插件、又不是 loader 起的')
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, 7)), true, '插件只是重启')
+  assert.equal(keepTunnelOnDispose({}), true, '看不出来就照旧留着')
+
+  // 照 cordis-plugin-loader 的样子搭条目：entry.options 在所在分组的 data 里；entry.disabled 连上层一起算
+  const loaderFiber = { entry: undefined }
+  const entryOf = (options, data, parentEntry) => {
+    const e = { options, parent: { data, ctx: { fiber: parentEntry ? { entry: parentEntry } : loaderFiber } } }
+    Object.defineProperty(e, 'disabled', { get: () => !!options.disabled || !!(parentEntry && parentEntry.disabled) })
+    return e
+  }
+  const rootData = [{ id: 'mobile', name: 'dsh-mobile' }]
+  const entry = entryOf(rootData[0], rootData)
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, null, entry)), true, '条目还在、没停用：HMR 换代码')
+  rootData[0].disabled = true
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, null, entry)), false, '停用')
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, null, entryOf({ id: 'mobile' }, []))), false, '卸载：配置里没这条了')
+  const groupData = [{ id: 'g', group: true }]
+  const group = entryOf(groupData[0], groupData)
+  const inner = [{ id: 'mobile' }]
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, null, entryOf(inner[0], inner, group))), true, '分组里的条目还在')
+  groupData.length = 0
+  assert.equal(keepTunnelOnDispose(ctx(ACTIVE, null, entryOf(inner[0], inner, group))), false, '整个分组被删了')
+})
+
+test('插件刚启动就被停用：启动流程收尾时不会再把隧道拉起来', async () => {
+  const { store, mobile, calls, done } = await setup({ installed: true })
+  store.setState({ enabled: true, tunnel: true })
+  const booting = mobile.boot() // DSH 的 effect 里不 await
+  await mobile.shutdown({ keep: false })
+  await booting
+  await tick(20)
+  assert.equal(mobile.tunnel.status.state, 'off', '隧道没被重新拉起')
+  assert.equal(calls.start, 0)
+  assert.equal(mobile.gateway.running, false)
   await done()
 })

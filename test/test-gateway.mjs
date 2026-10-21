@@ -8,11 +8,14 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { createStore } from '../lib/store.js'
-import { createGateway, COOKIE, upstreamHeaders, downstreamHeaders, phoneCookies, sameOrigin, wsTracker, shouldGzip } from '../lib/gateway.js'
+import { createGateway, COOKIE, upstreamHeaders, downstreamHeaders, phoneCookies, sameOrigin, wsTracker, shouldGzip, internalPath } from '../lib/gateway.js'
+import crypto from 'node:crypto'
 import zlib from 'node:zlib'
 import { BOOT_TAG, injectBoot } from '../lib/pages.js'
 
 const TOKEN = 'launch-token-xyz'
+const BIG_HTML = '<!doctype html><html><head><title>big</title></head><body>' + 'x'.repeat(5 * 1024 * 1024) + '</body></html>'
+const TUNNEL = { host: 'a.trycloudflare.com', 'cf-ray': 'x', 'cf-connecting-ip': '1.2.3.4', 'x-forwarded-proto': 'https' }
 
 /** 假 DSH：跟真的一样，没登录 Cookie 一律 401，Host 不是 127.0.0.1 或 Origin 不同源一律 403 */
 function fakeDsh() {
@@ -51,6 +54,14 @@ function fakeDsh() {
       res.writeHead(200, { 'content-type': 'text/event-stream' })
       res.write('data: hello\n\n')
       return // 之后一直不说话
+    }
+    if (u.pathname === '/big') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      return res.end(BIG_HTML)
+    }
+    if (u.pathname === '/dsh-mobile/panel') {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      return res.end('{"lan":{"url":"http://x/#pair=SECRET-CODE"}}')
     }
     if (u.pathname === '/redir') {
       res.writeHead(302, { location: `http://127.0.0.1:${port}/after`, 'set-cookie': ['dsh-auth-other=1; Path=/', 'pref=dark; Path=/'] })
@@ -93,7 +104,7 @@ function request(port, { method = 'GET', path: p = '/', headers = {}, body } = {
   })
 }
 
-async function setup(t, opts = {}) {
+async function setup(t, { authUrl = (base) => `${base}/?token=${TOKEN}`, ...opts } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dshm-test-'))
   const dsh = fakeDsh()
   const upPort = await dsh.listen()
@@ -101,15 +112,17 @@ async function setup(t, opts = {}) {
   const logs = []
   const gw = createGateway({
     store,
-    upstream: { port: () => upPort, authUrl: (base) => `${base}/?token=${TOKEN}` },
+    upstream: { port: () => upPort, authUrl },
     log: (m) => logs.push(m),
     ...opts,
   })
   const port = await gw.start(0)
   t.after(async () => { await gw.stop(); dsh.server.closeAllConnections(); dsh.server.close(); fs.rmSync(dir, { recursive: true, force: true }) })
-  const pair = async () => {
+  // tunnel：模拟从外网隧道（cloudflared 从本机连进来、带 Cloudflare 的头）配对
+  const pair = async ({ tunnel = false } = {}) => {
     const code = store.currentCode().value
-    const r = await request(port, { method: 'POST', path: '/__dshm/pair', headers: { 'content-type': 'application/json', origin: `http://192.168.1.5:${port}`, 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1' }, body: JSON.stringify({ code }) })
+    const via = tunnel ? { ...TUNNEL, origin: `https://${TUNNEL.host}` } : { origin: `http://192.168.1.5:${port}` }
+    const r = await request(port, { method: 'POST', path: '/__dshm/pair', headers: { 'content-type': 'application/json', ...via, 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1' }, body: JSON.stringify({ code }) })
     assert.equal(r.status, 200, r.text)
     const c = [].concat(r.headers['set-cookie'])[0].split(';')[0]
     return c
@@ -344,7 +357,8 @@ test('帧边界：长帧、分块、扩展长度都认得；不是 101 就不插
 
 test('隧道来的请求：文本 gzip、哈希资源长缓存；局域网不压', async (t) => {
   const { port, pair } = await setup(t)
-  const c = await pair()
+  const c = await pair({ tunnel: true })
+  const lanCookie = await pair()
   const viaTunnel = { cookie: c, 'accept-encoding': 'gzip, br', 'cf-ray': 'x', 'cf-connecting-ip': '1.2.3.4' }
   const raw = await new Promise((resolve, reject) => {
     http.get({ host: '127.0.0.1', port, path: '/assets/index-AbCd1234.js', headers: { host: 'a.trycloudflare.com', ...viaTunnel } }, (res) => {
@@ -357,7 +371,7 @@ test('隧道来的请求：文本 gzip、哈希资源长缓存；局域网不压
   assert.match(raw.headers['cache-control'], /immutable/)
   assert.equal(zlib.gunzipSync(raw.body).toString(), 'console.log(1);'.repeat(2000))
   assert.ok(raw.body.length < 2000)
-  const lan = await request(port, { path: '/assets/index-AbCd1234.js', headers: { cookie: c, 'accept-encoding': 'gzip' } })
+  const lan = await request(port, { path: '/assets/index-AbCd1234.js', headers: { cookie: lanCookie, 'accept-encoding': 'gzip' } })
   assert.equal(lan.headers['content-encoding'], undefined)
   assert.match(lan.headers['cache-control'], /immutable/)
   const page = await new Promise((resolve, reject) => {
@@ -373,4 +387,187 @@ test('隧道来的请求：文本 gzip、哈希资源长缓存；局域网不压
   assert.equal(shouldGzip({ method: 'GET', headers: { 'accept-encoding': 'gzip' } }, { 'content-type': 'application/json' }, 'lan'), false)
   assert.equal(shouldGzip({ method: 'GET', headers: { 'accept-encoding': 'gzip' } }, { 'content-type': 'application/json' }, 'tunnel'), true)
   assert.equal(shouldGzip({ method: 'GET', headers: { 'accept-encoding': 'gzip' } }, { 'content-type': 'image/png' }, 'tunnel'), false)
+})
+
+const idOf = (cookie) => cookie.split('=')[1].split('.')[0]
+
+test('插件自己的接口（设置页带配对码）：配好的手机经网关也读不到，WebSocket 也不行', async (t) => {
+  const { port, pair, dsh } = await setup(t)
+  const c = await pair()
+  for (const p of ['/dsh-mobile/panel', '/dsh-mobile/panel?x=1', '/./dsh-mobile/panel', '/a/../dsh-mobile/panel', '/dsh-mobile', '/dsh-mobile/other']) {
+    const r = await request(port, { path: p, headers: { cookie: c } })
+    assert.equal(r.status, 403, p)
+    assert.doesNotMatch(r.text, /SECRET-CODE/)
+  }
+  const post = await request(port, { method: 'POST', path: '/dsh-mobile/panel', headers: { cookie: c, 'content-type': 'application/json', origin: `http://192.168.1.5:${port}` }, body: '{"action":"newCode"}' })
+  assert.equal(post.status, 403)
+  assert.equal(dsh.seen.filter((s) => s.url.includes('dsh-mobile')).length, 0, '一个都没转给 DSH')
+  const ws = await wsConnect(port, c, `http://192.168.1.5:${port}`, '/dsh-mobile/panel')
+  assert.match(ws.head, /401/)
+  ws.s.destroy()
+  assert.equal(internalPath('/dsh-mobilex'), false)
+  assert.equal(internalPath('/plugins/dsh-mobile/client.js'), false)
+})
+
+test('凭证只在配对时那条路上有效：局域网配的上不了外网，外网配的也不能拿到局域网用', async (t) => {
+  const { port, pair, store } = await setup(t)
+  const lan = await pair()
+  const tun = await pair({ tunnel: true })
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: lan } })).status, 200)
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: lan, ...TUNNEL } })).status, 401)
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: tun, ...TUNNEL } })).status, 200)
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: tun } })).status, 401)
+  const ws = await wsConnect(port, lan, undefined, '/api/ws')
+  assert.match(ws.head, /101/)
+  ws.s.destroy()
+  const channels = Object.fromEntries(store.list().map((d) => [d.id, d.channel]))
+  assert.deepEqual(channels, { [idOf(lan)]: 'lan', [idOf(tun)]: 'tunnel' })
+})
+
+test('旧版（0.2.0）配的设备没有来路记录：按配对时的地址补，外网配的照样能从外网用', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dshm-test-'))
+  const secret = 'old-secret'
+  const hash = crypto.createHash('sha256').update(secret).digest('hex')
+  const old = (id, host) => ({ id, name: 'iPhone', hash, ...(host === undefined ? {} : { host }), created: 1, lastSeen: 1, lastIp: '', via: 'lan' })
+  fs.writeFileSync(path.join(dir, 'devices.json'), JSON.stringify([old('tun', 'some-words.trycloudflare.com'), old('lan', '192.168.1.5:18765'), old('nohost')]))
+  const store = createStore({ dir })
+  assert.equal(store.check('tun.' + secret, { via: 'tunnel' }).id, 'tun')
+  assert.equal(store.check('tun.' + secret, { via: 'lan' }), null)
+  assert.equal(store.check('lan.' + secret, { via: 'lan' }).id, 'lan')
+  assert.equal(store.check('lan.' + secret, { via: 'local' }).id, 'lan')
+  assert.equal(store.check('lan.' + secret, { via: 'tunnel' }), null)
+  assert.equal(store.check('nohost.' + secret, { via: 'lan' }).id, 'nohost')
+  assert.equal(store.check('nohost.' + secret, { via: 'tunnel' }), null)
+  assert.deepEqual(Object.fromEntries(store.list().map((d) => [d.id, d.channel])), { tun: 'tunnel', lan: 'lan', nohost: 'lan' })
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('DSH 的登录服务一开始没好：不把空结果缓存住，好了以后就能用；网关关了再开会重换', async (t) => {
+  let ready = false
+  const { port, pair, dsh, gw } = await setup(t, { authUrl: (base) => (ready ? `${base}/?token=${TOKEN}` : undefined) })
+  const c = await pair()
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: c } })).status, 401)
+  ready = true
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: c } })).status, 200)
+  assert.equal(dsh.seen.filter((s) => s.url.includes('token=')).length, 1)
+  await gw.stop()
+  const p2 = await gw.start(0)
+  assert.equal((await request(p2, { path: '/api/echo', headers: { cookie: c } })).status, 200)
+  assert.equal(dsh.seen.filter((s) => s.url.includes('token=')).length, 2, '关掉时清了缓存，重开后重新换')
+})
+
+const listening = (port) => new Promise((r) => { const c = net.connect(port, '127.0.0.1'); c.once('connect', () => { c.destroy(); r(true) }); c.once('error', () => r(false)) })
+
+test('网关启停并发：同时开两次只开一个；开到一半就关，关完不留监听', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dshm-test-'))
+  const gw = createGateway({ store: createStore({ dir }), upstream: { port: () => undefined, authUrl: () => undefined } })
+  const [a, b] = await Promise.all([gw.start(0), gw.start(0)])
+  assert.equal(a, b)
+  await gw.stop()
+  assert.equal(await listening(a), false)
+  const starting = gw.start(0)
+  const stopping = gw.stop()
+  const p = await starting
+  await stopping
+  assert.equal(gw.running, false)
+  assert.equal(await listening(p), false)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('外网请求共用 cloudflared 的连接：移除一台手机不会断掉另一台正在进行的请求', async (t) => {
+  const { port, pair, gw } = await setup(t)
+  const a = await pair({ tunnel: true })
+  const b = await pair({ tunnel: true })
+  const agent = new http.Agent({ keepAlive: true, maxSockets: 1 }) // 跟 cloudflared 一样复用同一条连接
+  t.after(() => agent.destroy())
+  const get = (cookie, p) => new Promise((resolve, reject) => {
+    const r = http.request({ host: '127.0.0.1', port, path: p, agent, headers: { ...TUNNEL, cookie } }, resolve)
+    r.on('error', reject)
+    r.end()
+  })
+  const ra = await get(a, '/api/echo')
+  ra.resume()
+  await new Promise((r) => ra.on('end', r))
+  const rb = await get(b, '/api/events')
+  assert.equal(rb.req.reusedSocket, true, 'B 的请求用的是 A 用过的那条连接')
+  let closed = false
+  rb.on('data', () => {})
+  rb.on('close', () => { closed = true })
+  rb.on('error', () => {})
+  gw.kick(idOf(a))
+  await new Promise((r) => setTimeout(r, 80))
+  assert.equal(closed, false, 'A 被移除，B 的事件流还在')
+  gw.kick(idOf(b))
+  await new Promise((r) => setTimeout(r, 80))
+  assert.equal(closed, true, '移除 B 才断 B')
+})
+
+test('超过 4MB 的首页：不插 boot.js，原样完整转发（不截断）', async (t) => {
+  const { port, pair } = await setup(t)
+  const c = await pair()
+  const r = await request(port, { path: '/big', headers: { cookie: c, accept: 'text/html', 'sec-fetch-dest': 'document' } })
+  assert.equal(r.status, 200)
+  assert.equal(r.text.length, BIG_HTML.length)
+  assert.equal(r.text, BIG_HTML)
+  assert.ok(!r.text.includes(BOOT_TAG))
+})
+
+test('超过 4MB 的首页走隧道：gzip 后原样完整转发', async (t) => {
+  const { port, pair } = await setup(t)
+  const c = await pair({ tunnel: true })
+  const z = await new Promise((resolve, reject) => {
+    http.get({ host: '127.0.0.1', port, path: '/big', headers: { ...TUNNEL, cookie: c, accept: 'text/html', 'sec-fetch-dest': 'document', 'accept-encoding': 'gzip' } }, (res) => {
+      const chunks = []
+      res.on('data', (d) => chunks.push(d))
+      res.on('end', () => resolve({ headers: res.headers, body: Buffer.concat(chunks) }))
+    }).on('error', reject)
+  })
+  assert.equal(z.headers['content-encoding'], 'gzip')
+  assert.equal(zlib.gunzipSync(z.body).toString(), BIG_HTML)
+})
+
+test('设备配满被挤掉：它开着的 WebSocket 立刻断；全部移除连不在列表里的也断', async (t) => {
+  const { port, pair, store, gw } = await setup(t)
+  const e = await pair()
+  const ws = await wsConnect(port, e, `http://192.168.1.5:${port}`)
+  assert.match(ws.head, /101/)
+  const closed = new Promise((r) => ws.s.once('close', r))
+  for (let i = 0; i < 20; i++) await pair()
+  await closed
+  assert.equal(store.list().length, 20)
+  assert.ok(!store.list().some((d) => d.id === idOf(e)))
+  assert.equal((await request(port, { path: '/api/echo', headers: { cookie: e } })).status, 401)
+
+  const x = await pair()
+  const ws2 = await wsConnect(port, x, `http://192.168.1.5:${port}`)
+  assert.match(ws2.head, /101/)
+  const closed2 = new Promise((r) => ws2.s.once('close', r))
+  store.remove(idOf(x)) // 已经不在列表里了
+  store.removeAll()
+  gw.kickAll()
+  await closed2
+})
+
+test('配对时刚好满了：挤掉的是最久没用的，不是刚配上的这台', () => {
+  let now = 1000
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dshm-test-'))
+  const store = createStore({ dir, now: () => now })
+  const ids = []
+  for (let i = 0; i < 20; i++) ids.push(store.pair(store.currentCode().value, {}).device.id)
+  const r = store.pair(store.currentCode().value, {}) // 同一毫秒
+  assert.deepEqual(r.evicted, [ids[0]])
+  assert.ok(store.list().some((d) => d.id === r.device.id))
+  now += 1
+  assert.ok(store.check(r.cookie, {}))
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('/assets/ 出错的响应不加一年缓存', async (t) => {
+  const { port, pair } = await setup(t)
+  const c = await pair()
+  const miss = await request(port, { path: '/assets/missing-AbCd1234.js', headers: { cookie: c } })
+  assert.equal(miss.status, 404)
+  assert.equal(miss.headers['cache-control'], undefined)
+  assert.equal(downstreamHeaders({}, 9, '/assets/x-AbCd1234.js', 500)['cache-control'], undefined)
+  assert.match(downstreamHeaders({}, 9, '/assets/x-AbCd1234.js', 304)['cache-control'], /immutable/)
 })

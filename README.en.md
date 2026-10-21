@@ -37,7 +37,7 @@ dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/d
 
 The first time, Cloudflare's official cloudflared (about 20 MB) is downloaded automatically, which takes about half a minute; meanwhile the card shows a same-Wi-Fi code and swaps it when outside access is ready. To keep it to your home network, turn off "Also work outside".
 
-After the first scan, just open the same address on the phone (add it to the home screen). The address survives DSH restarts, so no rescan; it changes when the computer restarts or phone access is turned off, so scan once more then.
+After the first scan, just open the same address on the phone (add it to the home screen). The address survives DSH restarts, so no rescan; it changes when the computer restarts, phone access is turned off, or the plugin is disabled or uninstalled in DSH, so scan once more then.
 
 While a phone is connected, the phone button in the header shows a green dot. If you cannot scan, use "Copy link" and open it on the phone (valid for 10 minutes, works once).
 
@@ -46,7 +46,8 @@ While a phone is connected, the phone button in the header shows a green dot. If
 The plugin runs a small gateway inside DSH (port 18765 by default) and forwards the phone's requests to DSH's own web UI on the computer. The phone runs the official DSH web UI, so sessions, approvals and settings are exactly what you have on the computer.
 
 - DSH desktop's web UI requires a login. Inside the DSH process the gateway trades the launch token for a session cookie and attaches it for the phone; that cookie never reaches the phone.
-- The phone's own credential is issued by the gateway (HttpOnly, SameSite=Strict). Only its hash is stored on disk.
+- The phone's own credential is issued by the gateway (HttpOnly, SameSite=Strict). Only its hash is stored on disk. A credential only works on the path it was paired on: one paired over Wi-Fi (plain HTTP) is refused on the outside tunnel.
+- The Mobile settings (switch, QR code, paired phones) can only be managed in DSH on the computer; a phone cannot read the pairing code.
 - The local network is plain HTTP, which lacks some "secure context" browser APIs; the gateway adds the one DSH needs.
 - When a live connection is idle, the gateway sends keepalive pings toward the phone so tunnels and carriers don't drop it.
 - Outside access uses `cloudflared tunnel --url` (a trycloudflare.com quick tunnel): Cloudflare forwards HTTPS traffic to the gateway on your computer, and the gateway's pairing still guards the door.
