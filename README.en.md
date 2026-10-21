@@ -30,7 +30,7 @@
 |---|---|
 | 📱 **Scan and go** | No app, no account. Point the phone camera at the QR code and the phone browser opens the same DSH as your computer. |
 | 🔄 **Same sessions, live** | A message sent from the phone shows up on the computer at once; you see the model's progress on the phone as it happens. |
-| 🌍 **Works anywhere** | On Wi-Fi at home or on mobile data outside. Outside access uses a free Cloudflare tunnel, set up automatically when you flip the switch. |
+| 🌍 **Works anywhere** | Goes through a free Cloudflare tunnel (HTTPS): the same link at home or on mobile data outside. Set up automatically when you flip the switch. |
 | 🔐 **Only your paired phones** | Each QR code works once and expires in 10 minutes; every phone gets its own credential, which you can revoke at any time. |
 
 ## Install
@@ -44,16 +44,16 @@ dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/d
 ## Use
 
 1. **On the computer**: click the phone button in the session header (or DSH → Plugins → Mobile) and turn on "Allow phone access".
-2. **On the phone**: scan the QR code with the camera. A code tagged "Wi-Fi or mobile data" works anywhere.
+2. **On the phone**: scan the QR code with the camera. It works at home and on the go.
 3. **Later**: just open the same address on the phone (add it to the home screen). It survives DSH restarts, so no rescan.
 
 While a phone is connected, the phone button in the header shows a green dot. If you cannot scan, use "Copy link" and open it on the phone (works once, within 10 minutes).
 
-> The first time outside access is turned on, Cloudflare's official cloudflared (about 20 MB) is downloaded automatically, which takes about half a minute. Meanwhile a same-Wi-Fi code is shown and swapped when the tunnel is ready. To keep it to your home network, turn off "Also work outside".
+> The first time outside access is turned on, Cloudflare's official cloudflared (about 20 MB) is downloaded automatically, which takes about half a minute. Meanwhile a temporary code is shown and swapped when the tunnel is ready.
 
 ## How it works
 
-<p align="center"><img src="assets/how-it-works.en.svg" alt="The phone reaches a gateway on the computer over the LAN or a Cloudflare tunnel; the gateway checks pairing and forwards to the DSH web UI" width="760" /></p>
+<p align="center"><img src="assets/how-it-works.en.svg" alt="The phone reaches a gateway on the computer through a Cloudflare tunnel; the gateway checks pairing and forwards to the DSH web UI" width="760" /></p>
 
 The plugin runs a small gateway inside DSH (port 18765 by default) and forwards the phone's requests to DSH's own web UI on the computer. The phone runs the official DSH web UI, so sessions and settings are exactly what you have on the computer.
 
@@ -100,9 +100,9 @@ Not after restarting DSH. After the computer restarts, phone access is turned of
 </details>
 
 <details>
-<summary><b>Why is it slow on mobile data in mainland China?</b></summary>
+<summary><b>Is it fast enough on mobile data in mainland China?</b></summary>
 
-Cloudflare's free network has no points of presence in mainland China, so requests travel abroad and back. At home, turn off "Also work outside" and use the direct LAN connection instead.
+Yes for everyday use. Cloudflare's free network has no points of presence in mainland China, so requests travel abroad and back: the first load takes a second or two, after that watching tasks and sending messages feels fine. A weak signal makes it noticeably slower.
 
 </details>
 

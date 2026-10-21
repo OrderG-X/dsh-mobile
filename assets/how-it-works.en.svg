@@ -2,7 +2,6 @@
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1322"/><stop offset="1" stop-color="#121b33"/></linearGradient>
     <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#8ea0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
-    <marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#58c46b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
   </defs>
   <rect width="760" height="330" rx="18" fill="url(#bg)"/>
   <rect x=".5" y=".5" width="759" height="329" rx="17.5" fill="none" stroke="#26304d"/>
@@ -16,15 +15,13 @@
   <rect x="54" y="210" width="76" height="22" rx="9" fill="#202740" stroke="#323b5c"/>
   <text x="92" y="276" text-anchor="middle" font-size="14" font-weight="700" fill="#e8ebf5">Your phone</text>
   <text x="92" y="296" text-anchor="middle" font-size="11" fill="#8b93ad">Phone browser · no app</text>
-  <!-- 两条路 -->
-  <path d="M160 118 H 416" stroke="#58c46b" stroke-width="2.2" stroke-dasharray="1 0" marker-end="url(#ag)" fill="none"/>
-  <rect x="190" y="96" width="196" height="24" rx="12" fill="#13261b" stroke="#2c5a37"/>
-  <text x="288" y="112" text-anchor="middle" font-size="11.5" font-weight="600" fill="#7fdc8f">LAN mode: direct on the same Wi-Fi</text>
-  <path d="M160 196 C 230 196, 250 238, 288 238 C 326 238, 346 196, 416 196" stroke="#8ea0ff" stroke-width="2.2" stroke-dasharray="6 6" marker-end="url(#ar)" fill="none"/>
-  <rect x="176" y="224" width="224" height="24" rx="12" fill="#18204a" stroke="#34408a"/>
-  <text x="288" y="240" text-anchor="middle" font-size="11.5" font-weight="600" fill="#aab8ff">Anywhere: free Cloudflare tunnel (HTTPS)</text>
-  <circle cx="288" cy="174" r="15" fill="#f38020" opacity=".14"/>
-  <path d="M280 178a6 6 0 0 1 1-11.6 8 8 0 0 1 15.2 2.1 4.6 4.6 0 0 1-.6 9.5z" fill="#f38020"/>
+  <!-- 一条路：Cloudflare 隧道 -->
+  <circle cx="288" cy="88" r="17" fill="#f38020" opacity=".14"/>
+  <path transform="translate(0 -84)" d="M280 178a6 6 0 0 1 1-11.6 8 8 0 0 1 15.2 2.1 4.6 4.6 0 0 1-.6 9.5z" fill="#f38020"/>
+  <path d="M160 119 H 416" stroke="#8ea0ff" stroke-width="2.2" stroke-dasharray="6 6" marker-end="url(#ar)" fill="none"/>
+  <rect x="176" y="134" width="224" height="24" rx="12" fill="#18204a" stroke="#34408a"/>
+  <text x="288" y="150" text-anchor="middle" font-size="11.5" font-weight="600" fill="#aab8ff">Free Cloudflare tunnel (HTTPS)</text>
+  <text x="288" y="178" text-anchor="middle" font-size="11" fill="#8b93ad">Same link at home or on the go</text>
   <!-- 电脑 -->
   <rect x="428" y="44" width="292" height="226" rx="14" fill="#141a2b" stroke="#3b4566" stroke-width="2"/>
   <circle cx="446" cy="60" r="4" fill="#ff5f57"/><circle cx="460" cy="60" r="4" fill="#febc2e"/><circle cx="474" cy="60" r="4" fill="#28c840"/>
