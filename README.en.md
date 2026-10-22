@@ -19,6 +19,12 @@
 
 </div>
 
+> **What it is:** a DeepSeek Harness (DSH) plugin to use the DSH on your computer from a phone browser: scan a QR code, then follow tasks, reply and approve. It goes through a free Cloudflare tunnel, so it works on mobile data too, with no app to install.
+>
+> **Use it for:** "I'm heading out and want to keep an eye on the task", "reply or approve while I'm away from the computer".
+>
+> **Install:** `dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz`, then restart DSH. Tested on macOS only so far.
+
 <p align="center">
   <img src="assets/demo.en.gif" alt="Turn on phone access on the computer, scan with the phone, reply from the phone; both stay in sync" width="880" />
 </p>

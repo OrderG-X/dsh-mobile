@@ -19,6 +19,12 @@
 
 </div>
 
+> **一句话**：DeepSeek Harness（DSH）插件，在手机浏览器里用电脑上的 DSH：扫码后看任务进度、回消息、点批准。走免费的 Cloudflare 隧道，在外面用流量也能连，不用装 App。
+>
+> **什么时候用**：「出门了想在手机上看任务」「人不在电脑前也想回消息、点批准」。
+>
+> **安装**：`dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz`，重启 DSH。目前只在 macOS 上测过。
+
 <p align="center">
   <img src="assets/demo.gif" alt="电脑上打开手机访问，手机扫码，手机上发消息，两边实时同步" width="880" />
 </p>
