@@ -1,4 +1,5 @@
-# Bundle patch for dsh-mobile: inserts the plugin row into the DSH profile.
+# Bundle patch for @orderg-x/dsh-mobile: inserts the plugin row into the DSH profile.
+# The row id differs from the old dsh-mobile package's (`mobile`), so both can sit in a profile without a duplicate-id error.
 - insert:
-    - id: mobile
-      name: dsh-mobile
+    - id: orderg-x-mobile
+      name: '@orderg-x/dsh-mobile'

@@ -6,7 +6,7 @@ import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { createStore } from '../lib/store.js'
-import { createMobile, keepTunnelOnDispose } from '../lib/index.js'
+import { createMobile, keepTunnelOnDispose, oldCopyLoaded, apply, PKG, OLD_PKG } from '../lib/index.js'
 
 const tick = (ms = 10) => new Promise((r) => setTimeout(r, ms))
 
@@ -169,6 +169,7 @@ test('设备列表带在线状态', async () => {
   const code = store.currentCode()
   store.pair(code.value, { ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' })
   const s = mobile.state()
+  assert.equal(s.pkg, PKG, '设置页靠它认出应答的是新版还是旧版')
   assert.equal(s.devices.length, 1)
   assert.equal(s.devices[0].online, false)
   await done()
@@ -256,4 +257,25 @@ test('插件刚启动就被停用：启动流程收尾时不会再把隧道拉�
   assert.equal(calls.start, 0)
   assert.equal(mobile.gateway.running, false)
   await done()
+})
+
+test('改名后：旧版 dsh-mobile 还装着、启用着，新版整个让开', () => {
+  assert.equal(PKG, '@orderg-x/dsh-mobile')
+  assert.equal(OLD_PKG, 'dsh-mobile')
+  const ctxOf = (data) => ({ fiber: { entry: { parent: { data } } } })
+  const mine = { id: 'orderg-x-mobile', name: PKG }
+  assert.equal(oldCopyLoaded(ctxOf([mine])), false, '只有新版')
+  assert.equal(oldCopyLoaded(ctxOf([{ id: 'mobile', name: OLD_PKG }, mine])), true, '旧版也在')
+  assert.equal(oldCopyLoaded(ctxOf([{ id: 'mobile', name: OLD_PKG, disabled: true }, mine])), false, '旧版已停用')
+  assert.equal(oldCopyLoaded(ctxOf(undefined)), false, '看不到分组配置')
+  assert.equal(oldCopyLoaded({}), false)
+  assert.equal(oldCopyLoaded(undefined), false)
+
+  // 让开 = 不起网关、不挂路由：apply 一个 effect 都不注册
+  let effects = 0
+  const warned = []
+  const ctx = { ...ctxOf([{ id: 'mobile', name: OLD_PKG }, mine]), effect: () => { effects++ }, logger: { warn: (m) => warned.push(m) } }
+  apply(ctx)
+  assert.equal(effects, 0)
+  assert.equal(warned.length, 1)
 })

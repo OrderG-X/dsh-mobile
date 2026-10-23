@@ -23,7 +23,7 @@
 >
 > **Use it for:** "I'm heading out and want to keep an eye on the task", "reply or approve while I'm away from the computer".
 >
-> **Install:** `dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz`, then restart DSH. Tested on macOS only so far.
+> **Install:** `dsh plugin add @orderg-x/dsh-mobile` (npm package), then restart DSH. Tested on macOS only so far.
 
 <p align="center">
   <img src="assets/demo.en.gif" alt="Turn on phone access on the computer, scan with the phone, reply from the phone; both stay in sync" width="880" />
@@ -42,10 +42,12 @@
 ## Install
 
 ```sh
-dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz
+dsh plugin add @orderg-x/dsh-mobile
 ```
 
-**Restart DSH** afterwards. It shows up as "Mobile" on the DSH Plugins page.
+Or install the release tarball directly: `dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz`. **Restart DSH** afterwards. It shows up as "Mobile" on the DSH Plugins page.
+
+> **Upgrading from 0.2.x:** from 0.3.0 the package is called `@orderg-x/dsh-mobile` (`dsh-mobile` on npm is someone else's package). After installing it, remove the old "dsh-mobile" on the Plugins page and restart DSH. While the old one is still installed the new one stays off and only asks you to remove it. Your settings are kept; the internet address changes, so scan the QR code once more on the phone.
 
 ## Use
 

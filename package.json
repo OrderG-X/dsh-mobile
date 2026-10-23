@@ -1,7 +1,6 @@
 {
-  "name": "dsh-mobile",
-  "version": "0.2.1",
-  "private": true,
+  "name": "@orderg-x/dsh-mobile",
+  "version": "0.3.0",
   "type": "module",
   "description": "Scan a QR code and use DSH from your phone's browser: watch the tasks running on your computer, reply and approve, live. One QR code works anywhere: a free Cloudflare tunnel is set up automatically. One-time QR pairing, per-device access you can revoke.",
   "license": "MIT",
