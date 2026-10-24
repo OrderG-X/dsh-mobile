@@ -140,6 +140,10 @@ DSH 重启不用。电脑重启、关掉「允许手机访问」、在 DSH 里�
 npm test   # 网关、配对、长连接、保活的脚本测试
 ```
 
+## 反馈
+
+遇到问题或想要新功能，[提一个 issue](https://github.com/OrderG-X/dsh-mobile/issues/new/choose)。报问题时写上 DSH 版本和插件版本，修起来最快。
+
 ## License
 
 MIT
