@@ -140,6 +140,10 @@ No. Nothing works while the computer sleeps or DSH is closed.
 npm test   # script tests for the gateway, pairing, live connections and keepalive
 ```
 
+## Feedback
+
+Found a bug or want a feature? [Open an issue](https://github.com/OrderG-X/dsh-mobile/issues/new/choose). Including your DSH and plugin versions helps a lot.
+
 ## License
 
 MIT
