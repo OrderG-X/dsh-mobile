@@ -240,7 +240,7 @@ test('cloudflared 的空配置放在数据目录（0600）；写不进去就不�
   const cfg = c.args[c.args.indexOf('--config') + 1]
   assert.equal(cfg, path.join(dir, 'cloudflared.yml'))
   assert.equal(fs.readFileSync(cfg, 'utf8'), '{}\n')
-  assert.equal(fs.statSync(cfg).mode & 0o777, 0o600)
+  if (process.platform !== 'win32') assert.equal(fs.statSync(cfg).mode & 0o777, 0o600) // Windows 没有这套权限位
   t.stop()
 
   const bad = createTunnel(w.opts(dir, { configFile: dir })) // 是个目录，写不进去

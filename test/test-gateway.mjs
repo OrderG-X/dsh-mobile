@@ -283,7 +283,7 @@ test('设备文件里只存哈希；外网地址换了清掉旧地址的设备',
   const c = await pair()
   const raw = fs.readFileSync(path.join(dir, 'devices.json'), 'utf8')
   assert.ok(!raw.includes(c.split('.')[1]))
-  assert.equal((fs.statSync(path.join(dir, 'devices.json')).mode & 0o777), 0o600)
+  if (process.platform !== 'win32') assert.equal((fs.statSync(path.join(dir, 'devices.json')).mode & 0o777), 0o600) // Windows 没有这套权限位
   const p2 = store.pair(store.currentCode().value, { ua: 'Android Mobile Chrome/1', host: 'old-words.trycloudflare.com', via: 'tunnel' })
   assert.ok(p2)
   assert.equal(store.list().length, 2)
