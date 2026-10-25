@@ -210,11 +210,15 @@ try {
   }
   const panel = (body) => page(`fetch('/dsh-mobile/panel', ${body ? `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }` : '{}'}).then((r) => r.json())`)
   const composer = '[contenteditable="true"], textarea'
-  if (!check('界面加载出输入框', await until(`!!document.querySelector('${composer}')`, 90000), (await page('document.body.innerText.slice(0, 400)').catch((e) => e.message)))) throw new Error('没有输入框')
+  const shown = async () => page(`document.body.innerText.slice(0, 1500) + ' ｜ 按钮：' + [...document.querySelectorAll('button')].map((b) => b.innerText.trim()).filter(Boolean).slice(0, 30).join(' / ')`).catch((e) => e.message)
+  if (!check('界面加载出输入框', await until(`!!document.querySelector('${composer}')`, 120000), await shown())) throw new Error('没有输入框')
 
-  // 第一次打开有「预览版说明」挡着：点「继续」
-  await page(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /^(继续|Continue)$/.test(x.innerText.trim())); if (b) b.click(); return !!b })()`)
-  await sleep(800)
+  // 第一次打开有「预览版说明」挡着，而且可能晚几秒才弹：等一会儿，看到「继续」就点
+  const CONTINUE = `[...document.querySelectorAll('button')].find((x) => /^(继续|Continue)$/.test(x.innerText.trim()))`
+  const dismiss = async (ms) => {
+    if (await until(`!!${CONTINUE}`, ms)) { await page(`${CONTINUE}.click()`).catch(() => {}); await sleep(800) }
+  }
+  await dismiss(15000)
 
   let st = await panel({ action: 'push', url: HOOK })
   check('设置页存下推送地址', st.push && st.push.kind === 'webhook', JSON.stringify(st.push))
@@ -222,6 +226,7 @@ try {
   check('发一条试试：Webhook 收到', !st.actionError && pushes.length === 1 && /^DSH/.test(pushes[0].title), st.actionError || JSON.stringify(pushes))
 
   const say = async (text) => {
+    await dismiss(1000)
     await page(`(() => { const el = document.querySelector('${composer}'); el.focus(); return true })()`)
     await chrome.cdp('Input.insertText', { text }, sessionId)
     await sleep(300)
