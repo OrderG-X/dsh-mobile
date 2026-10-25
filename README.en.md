@@ -37,6 +37,7 @@
 | 📱 **Scan and go** | No app, no account. Point the phone camera at the QR code and the phone browser opens the same DSH as your computer. |
 | 🔄 **Same sessions, live** | A message sent from the phone shows up on the computer at once; you see the model's progress on the phone as it happens. |
 | 🌍 **Works anywhere** | Goes through a free Cloudflare tunnel (HTTPS): the same link at home or on mobile data outside. Set up automatically when you flip the switch. |
+| 🔔 **Buzz when done or waiting** | Paste a Bark / ntfy / Telegram / chat-bot address and the phone buzzes when a task finishes or waits for your approval; tap the notification to open DSH. |
 | 🔐 **Only your paired phones** | Each QR code works once and expires in 10 minutes; every phone gets its own credential, which you can revoke at any time. |
 
 ## Install
@@ -53,9 +54,29 @@ Or install the release tarball directly: `dsh plugin add https://github.com/Orde
 
 1. **On the computer**: click the phone button in the session header (or DSH → Plugins → Mobile) and turn on "Allow phone access".
 2. **On the phone**: scan the QR code with the camera. It works at home and on the go.
-3. **Later**: just open the same address on the phone (add it to the home screen). It survives DSH restarts, so no rescan.
+3. **Later**: just open the same address on the phone (add it to the home screen, see the FAQ). It survives DSH restarts, so no rescan.
+4. **Want the phone to buzz?** Add a push address, see "Phone notifications" below.
 
 While a phone is connected, the phone button in the header shows a green dot. If you cannot scan, use "Copy link" and open it on the phone (works once, within 10 minutes).
+
+## Phone notifications (optional)
+
+Don't want to keep checking? Paste an address under "Push to phone" on the Mobile page and DSH pushes a message when:
+
+- **a task finishes** (only runs longer than 30 seconds, so quick back-and-forth stays quiet; a run that stops with an error counts too)
+- **DSH waits for your approval or answer** (the card still shows in DSH as usual; the notification never decides for you)
+
+Tap "Send a test" and you're done once the phone buzzes. Each kind can be turned off. Notifications carry only the session title and status, never conversation content.
+
+| Service | Where to get the address |
+|---|---|
+| **Bark** (iPhone) | Install Bark from the App Store; copy the `https://api.day.app/…` line it shows |
+| **ntfy** (Android / iPhone) | Install ntfy, subscribe to a hard-to-guess topic, paste `https://ntfy.sh/<topic>` |
+| **ServerChan** (WeChat) | Sign in at sct.ftqq.com and paste your SendKey (starts with `SCT`) |
+| **Feishu / Lark, WeCom, DingTalk** | Add a custom bot to a group and copy its webhook URL |
+| **Telegram** | `https://api.telegram.org/bot<bot token>/sendMessage?chat_id=<your chat id>` |
+
+Any other URL is treated as a generic webhook: it gets a JSON POST with `title`, `body` and `url`.
 
 > The first time outside access is turned on, Cloudflare's official cloudflared (about 20 MB) is downloaded automatically, which takes about half a minute. Meanwhile a temporary code is shown and swapped when the tunnel is ready.
 
@@ -122,6 +143,13 @@ A code works once and expires in 10 minutes, so a code you already scanned is us
 </details>
 
 <details>
+<summary><b>Can I open it like an app from the home screen?</b></summary>
+
+Yes. On iPhone open the address in Safari, tap Share → Add to Home Screen; on Android open it in Chrome and choose Add to Home screen or Install app. Launched from the icon it runs full screen without the address bar.
+
+</details>
+
+<details>
 <summary><b>Does it work while the computer sleeps?</b></summary>
 
 No. Nothing works while the computer sleeps or DSH is closed.
@@ -130,7 +158,7 @@ No. Nothing works while the computer sleeps or DSH is closed.
 
 ## Limitations
 
-- The phone shows DSH's web UI as is; there is no phone-specific layout.
+- The phone shows DSH's web UI: the side panels slide over the page and close when you tap outside; nothing else is re-laid out for phones.
 - Outside access uses Cloudflare's free quick tunnels, which have no uptime guarantee.
 - Tested with DSH desktop on macOS only; the cloudflared download paths for Windows and Linux are written but untested.
 

@@ -571,3 +571,33 @@ test('/assets/ 出错的响应不加一年缓存', async (t) => {
   assert.equal(downstreamHeaders({}, 9, '/assets/x-AbCd1234.js', 500)['cache-control'], undefined)
   assert.match(downstreamHeaders({}, 9, '/assets/x-AbCd1234.js', 304)['cache-control'], /immutable/)
 })
+
+test('添加到主屏幕：manifest 和图标不用配对就给；首页带上图标标签和手机排版', async (t) => {
+  const { port, pair } = await setup(t)
+  const man = await request(port, { path: '/__dshm/manifest.webmanifest' })
+  assert.equal(man.status, 200)
+  assert.match(man.headers['content-type'], /manifest\+json/)
+  const m = JSON.parse(man.text)
+  assert.equal(m.display, 'standalone')
+  assert.equal(m.start_url, '/')
+  for (const size of [180, 192, 512]) {
+    const r = await new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: `/__dshm/icon-${size}.png`, headers: { host: `192.168.1.5:${port}` } }, (res) => {
+      const chunks = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'], body: Buffer.concat(chunks) }))
+    }))
+    assert.equal(r.status, 200)
+    assert.equal(r.type, 'image/png')
+    assert.equal(r.body.subarray(1, 4).toString(), 'PNG')
+    assert.equal(r.body.readUInt32BE(16), size) // IHDR 宽
+  }
+  assert.equal((await request(port, { path: '/__dshm/icon-64.png' })).status, 401) // 别的尺寸不给
+  const c = await pair()
+  const page = await request(port, { headers: { accept: 'text/html', 'sec-fetch-dest': 'document', cookie: c } })
+  assert.ok(page.text.indexOf('rel="manifest" href="/__dshm/manifest.webmanifest"') < page.text.indexOf('<title>'))
+  assert.match(page.text, /apple-touch-icon/)
+  const boot = await request(port, { path: '/__dshm/boot.js', headers: { cookie: c } })
+  assert.match(boot.text, /max-width: 760px/)
+  assert.match(boot.text, /data-sidebar-collapsed/)
+  new Function(boot.text) // 语法没问题
+})
