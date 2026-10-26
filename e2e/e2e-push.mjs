@@ -44,6 +44,27 @@ const run = (cmd, args, opts = {}) => {
   return { code: r.status, out: ((r.stdout || '') + (r.stderr || '')).trim() }
 }
 
+// 第一次打开有「预览版说明」挡着输入框。Windows 上点「继续」存不下已读（acknowledgement could not be saved），
+// 框一直不走。起 DSH 前在 web profile 的补丁层里直接记上已读（桌面版点完「继续」存的就是这一条）；
+// 版本号从装好的 DSH 里读，读不到就不记，照旧点「继续」
+function seedWelcome(cliDir) {
+  const rel = path.join('@deepseek-ai', 'dsh-client-ui-settings-models', 'lib', 'client.js')
+  const src = [path.join(tmp, 'cli', 'node_modules', rel), path.join(cliDir, 'node_modules', rel)].find((f) => fs.existsSync(f))
+  const m = src && /WELCOME_NOTICE_SETTINGS_NAMESPACE = "([\w-]+)"[\s\S]{0,600}?WELCOME_NOTICE_VERSION = "([^"]+)"/.exec(fs.readFileSync(src, 'utf8'))
+  if (!m) return '没找到版本号，照旧点「继续」'
+  const [, id, version] = m
+  // 存已读的是哪个插件的配置（0.2.1 是 ui-settings-general）；对不上包名就不记
+  if (!fs.existsSync(path.join(path.dirname(src), '..', '..', `dsh-client-${id}`))) return `存已读的 ${id} 不是插件，照旧点「继续」`
+  const file = path.join(env.DSH_HOME, 'profiles', 'web', 'cordis.patch.yml')
+  // 新建的补丁层是注释加一行 `[]`：直接在后面接 `- id:` 就不是合法 YAML 了，DSH 起不来，先去掉它
+  const old = (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '').replace(/^\[\]\s*$/m, '')
+  if (new RegExp(`^- id: ${id}$`, 'm').test(old)) return `补丁层里已有 ${id}，没动`
+  const entry = `- id: ${id}\n  name: "@deepseek-ai/dsh-client-${id}"\n  config:\n    welcomeNoticeVersion: ${JSON.stringify(version)}\n`
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, old && !old.endsWith('\n') ? `${old}\n${entry}` : old + entry)
+  return `预先记上已读 ${version}`
+}
+
 // ── 假模型：Anthropic Messages，SSE ──
 const llmLog = []
 function sse(res, blocks, stop) {
@@ -174,6 +195,7 @@ try {
   dshVersion = JSON.parse(fs.readFileSync(path.join(cliDir, 'package.json'), 'utf8')).version
   const add = run(process.execPath, [path.join(cliDir, 'lib', 'bin.js'), 'plugin', '--profile', 'web', 'add', path.join(tmp, tgz)], { cwd: tmp })
   if (!check('DSH 装上插件', add.code === 0, add.out.slice(-800))) throw new Error('插件没装上')
+  console.log(`  （预览版说明：${seedWelcome(cliDir)}）`)
   const work = path.join(tmp, 'work')
   fs.mkdirSync(work, { recursive: true })
   const url = await new Promise((resolve) => {
@@ -219,6 +241,7 @@ try {
   // DSH 偶尔存不下「已读」（Windows 上见过 acknowledgement could not be saved），框不走：多点几次
   const dismiss = async (ms) => {
     if (!(await until(`!!${CONTINUE}`, ms))) return
+    console.log('  （预览版说明弹出来了，点「继续」）')
     for (let i = 0; i < 5 && await page(`!!${CONTINUE}`).catch(() => false); i++) {
       await page(`${CONTINUE}.click()`).catch(() => {})
       await sleep(800 + i * 700)
