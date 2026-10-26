@@ -216,10 +216,13 @@ try {
   // 第一次打开有「预览版说明」挡着，而且可能晚几秒才弹：等一会儿，看到「继续」就点
   // innerText 会跟着 CSS 变大写（英文界面是 CONTINUE），所以不分大小写
   const CONTINUE = `[...document.querySelectorAll('button, [role="button"]')].find((x) => /^\\s*(继续|continue)\\s*$/i.test(x.textContent || ''))`
+  // DSH 偶尔存不下「已读」（Windows 上见过 acknowledgement could not be saved），框不走：多点几次
   const dismiss = async (ms) => {
     if (!(await until(`!!${CONTINUE}`, ms))) return
-    await page(`${CONTINUE}.click()`).catch(() => {})
-    await sleep(800)
+    for (let i = 0; i < 5 && await page(`!!${CONTINUE}`).catch(() => false); i++) {
+      await page(`${CONTINUE}.click()`).catch(() => {})
+      await sleep(800 + i * 700)
+    }
     if (await page(`!!${CONTINUE}`).catch(() => false)) { // 还在：按 Esc 关
       for (const type of ['keyDown', 'keyUp']) await chrome.cdp('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, sessionId)
       await sleep(800)

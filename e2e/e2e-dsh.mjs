@@ -16,6 +16,7 @@ import path from 'node:path'
 import http from 'node:http'
 import https from 'node:https'
 import zlib from 'node:zlib'
+import dns from 'node:dns'
 import { spawn, spawnSync, execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -55,6 +56,19 @@ const check = (name, cond, extra = '') => {
 const failed = () => results.filter((r) => !r.ok)
 
 /** 不用 fetch：要自己定 Origin、拿原样的 Set-Cookie */
+// 新隧道的域名刚建出来时，跑测试的机器的 DNS 可能把「查不到」缓存好几分钟（CI 的 macOS 上见过）：
+// trycloudflare 的域名直接问公共 DNS，问不到再走系统
+const pubDns = new dns.Resolver()
+pubDns.setServers(['1.1.1.1', '8.8.8.8'])
+function lookup(host, opts, cb) {
+  if (!/\.trycloudflare\.com$/i.test(host)) return dns.lookup(host, opts, cb)
+  pubDns.resolve4(host, (err, ips) => {
+    if (err || !ips.length) return dns.lookup(host, opts, cb)
+    if (opts.all) cb(null, ips.map((address) => ({ address, family: 4 })))
+    else cb(null, ips[0], 4)
+  })
+}
+
 function req(url, { method = 'GET', headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(url)
@@ -63,6 +77,7 @@ function req(url, { method = 'GET', headers = {}, body } = {}) {
       method,
       headers: { ...(data ? { 'content-type': 'application/json', 'content-length': data.length } : {}), ...headers },
       timeout: 30000,
+      lookup,
     }, (res) => {
       const chunks = []
       res.on('data', (c) => chunks.push(c))
