@@ -243,6 +243,15 @@ test('设置页：存推送地址、认不出来报错、发一条试试', async
     assert.equal(sent[0].body.topic, 'dsh-test')
     assert.equal(sent[0].body.click, undefined) // 没开手机访问：没有地址可点
     assert.equal(s.push.last.ok, true)
+    // 推送的话跟设置页的界面语言走（DSH 后台进程的系统语言可能是英文）
+    await mobile.act({ action: 'pushTest', lang: 'zh' })
+    assert.match(sent[1].body.message, /推送设置好了/)
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'state.json'), 'utf8')).push.lang, 'zh')
+    await mobile.act({ action: 'push', approval: false, lang: 'en' })
+    await mobile.act({ action: 'pushTest' })
+    assert.match(sent[2].body.message, /^Push is set up/)
+    await mobile.act({ action: 'push', done: true, lang: 'nope' }) // 不认识的语言：不动
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'state.json'), 'utf8')).push.lang, 'en')
   } finally {
     await mobile.stopAll()
     fs.rmSync(dir, { recursive: true, force: true })
