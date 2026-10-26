@@ -120,7 +120,7 @@ function chromeBin() {
 function launchChrome(bin) {
   const udd = path.join(tmp, 'chrome')
   const proc = spawn(bin, ['--remote-debugging-pipe', `--user-data-dir=${udd}`, '--headless=new', '--no-first-run', '--no-default-browser-check',
-    '--window-size=1280,900', ...(process.platform === 'darwin' ? ['--use-mock-keychain'] : []), ...(process.platform === 'linux' ? ['--no-sandbox'] : []), 'about:blank'],
+    '--window-size=1280,900', ...(process.env.E2E_LANG ? [`--lang=${process.env.E2E_LANG}`] : []), ...(process.platform === 'darwin' ? ['--use-mock-keychain'] : []), ...(process.platform === 'linux' ? ['--no-sandbox'] : []), 'about:blank'],
   { stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'], windowsHide: true })
   const pending = new Map()
   let seq = 0
@@ -214,9 +214,16 @@ try {
   if (!check('界面加载出输入框', await until(`!!document.querySelector('${composer}')`, 120000), await shown())) throw new Error('没有输入框')
 
   // 第一次打开有「预览版说明」挡着，而且可能晚几秒才弹：等一会儿，看到「继续」就点
-  const CONTINUE = `[...document.querySelectorAll('button')].find((x) => /^(继续|Continue)$/.test(x.innerText.trim()))`
+  // innerText 会跟着 CSS 变大写（英文界面是 CONTINUE），所以不分大小写
+  const CONTINUE = `[...document.querySelectorAll('button, [role="button"]')].find((x) => /^\\s*(继续|continue)\\s*$/i.test(x.textContent || ''))`
   const dismiss = async (ms) => {
-    if (await until(`!!${CONTINUE}`, ms)) { await page(`${CONTINUE}.click()`).catch(() => {}); await sleep(800) }
+    if (!(await until(`!!${CONTINUE}`, ms))) return
+    await page(`${CONTINUE}.click()`).catch(() => {})
+    await sleep(800)
+    if (await page(`!!${CONTINUE}`).catch(() => false)) { // 还在：按 Esc 关
+      for (const type of ['keyDown', 'keyUp']) await chrome.cdp('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, sessionId)
+      await sleep(800)
+    }
   }
   await dismiss(15000)
 
