@@ -23,7 +23,7 @@
 >
 > **什么时候用**：「出门了想在手机上看任务」「人不在电脑前也想回消息、点批准」。
 >
-> **安装**：`dsh plugin add @orderg-x/dsh-mobile`（npm 包），重启 DSH。目前只在 macOS 上测过。
+> **安装**：DSH「插件」页 →「添加插件」，填 `@orderg-x/dsh-mobile`（npm 包，连不上 npm 会自动换国内镜像），重启 DSH。目前只在 macOS 上测过。
 
 <p align="center">
   <img src="assets/demo.gif" alt="电脑上打开手机访问，手机扫码，手机上发消息，两边实时同步" width="880" />
@@ -42,11 +42,15 @@
 
 ## 安装
 
-```sh
-dsh plugin add @orderg-x/dsh-mobile
+在 DSH「插件」页点「添加插件」，填包名：
+
+```
+@orderg-x/dsh-mobile
 ```
 
-也可以直接装发布包：`dsh plugin add https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz`。装完**重启 DSH**。DSH「插件」页里显示为「手机端」。
+这是 npm 包：按包名装时，DSH 连不上 npm 官方源会自动改用国内镜像（npmmirror），不经过 GitHub。也可以填发布包地址 `https://github.com/OrderG-X/dsh-mobile/releases/latest/download/dsh-mobile.tgz`，那样要能连上 GitHub。
+
+装完**重启 DSH**。DSH「插件」页里显示为「手机端」。
 
 > **从 0.2.x 升级**：0.3.0 起包名改成 `@orderg-x/dsh-mobile`（npm 上的 `dsh-mobile` 是别人的包）。装上新版后，到「插件」页把旧的「dsh-mobile」移除，再重启 DSH。旧版还在时新版不会启动，只提示你移除旧版。设置都会保留；外网地址会换一个，手机重扫一次就好。
 
