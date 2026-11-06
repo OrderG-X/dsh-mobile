@@ -54,7 +54,7 @@ It is an npm package. When DSH installs by package name and can't reach the offi
 
 **Restart DSH** afterwards. It shows up as "Mobile" on the DSH Plugins page.
 
-**Updating:** uninstall it on the Plugins page and add it again. A new version can be installed by package name about a day after release, because the pnpm that DSH uses skips brand-new versions by default. To get it right away, use the release tarball.
+**Updating:** on DSH 0.2.2 or later, open it on the Plugins page and click "Update to …". On older DSH, uninstall it and add it again as above. A new version can be installed about a day after release, because the pnpm that DSH uses skips brand-new versions by default. To get it right away, uninstall it and add the release tarball instead (a tarball install can't use Update later).
 
 > **Upgrading from 0.2.x:** from 0.3.0 the package is called `@orderg-x/dsh-mobile` (`dsh-mobile` on npm is someone else's package). After installing it, remove the old "dsh-mobile" on the Plugins page and restart DSH. While the old one is still installed the new one stays off and only asks you to remove it. Your settings are kept; the internet address changes, so scan the QR code once more on the phone.
 
