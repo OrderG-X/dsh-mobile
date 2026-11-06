@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/hero.svg" alt="dsh-mobile — 手机端：手机扫码，在手机浏览器里看电脑上的 DSH 任务" width="760" />
+![dsh-mobile — 手机端：手机扫码，在手机浏览器里看电脑上的 DSH 任务](assets/hero.svg)
 
 <p>
   <a href="https://github.com/OrderG-X/dsh-mobile/releases"><img src="https://img.shields.io/github/v/release/OrderG-X/dsh-mobile?label=release&color=4D6BFE" alt="release" /></a>
@@ -26,7 +26,9 @@
 > **安装**：DSH「插件」页 →「添加插件」，填 `@orderg-x/dsh-mobile`（npm 包，连不上 npm 会自动换国内镜像），重启 DSH。macOS、Windows、Linux 都能用。
 
 <p align="center">
-  <img src="assets/demo.gif" alt="电脑上打开手机访问，手机扫码，手机上发消息，两边实时同步" width="880" />
+
+![电脑上打开手机访问，手机扫码，手机上发消息，两边实时同步](assets/demo.gif)
+
 </p>
 <p align="center"><sub>演示动画，内容是示例数据。</sub></p>
 
@@ -88,7 +90,11 @@
 
 ## 原理
 
-<p align="center"><img src="assets/how-it-works.svg" alt="手机经 Cloudflare 隧道连到电脑上的手机端网关，网关验过配对再转给 DSH 网页端" width="760" /></p>
+<p align="center">
+
+![手机经 Cloudflare 隧道连到电脑上的手机端网关，网关验过配对再转给 DSH 网页端](assets/how-it-works.svg)
+
+</p>
 
 插件在 DSH 里起一个小网关（默认端口 18765），把手机的请求转给本机的 DSH 网页端。手机上跑的就是 DSH 官方网页界面，会话、设置都和电脑上一样。
 

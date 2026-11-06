@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/hero.svg" alt="dsh-mobile — scan a QR code and use DSH from your phone" width="760" />
+![dsh-mobile — scan a QR code and use DSH from your phone](assets/hero.svg)
 
 <p>
   <a href="https://github.com/OrderG-X/dsh-mobile/releases"><img src="https://img.shields.io/github/v/release/OrderG-X/dsh-mobile?label=release&color=4D6BFE" alt="release" /></a>
@@ -26,7 +26,9 @@
 > **Install:** on the DSH Plugins page, click Add plugin and enter `@orderg-x/dsh-mobile` (an npm package), then restart DSH. Works on macOS, Windows and Linux.
 
 <p align="center">
-  <img src="assets/demo.en.gif" alt="Turn on phone access on the computer, scan with the phone, reply from the phone; both stay in sync" width="880" />
+
+![Turn on phone access on the computer, scan with the phone, reply from the phone; both stay in sync](assets/demo.en.gif)
+
 </p>
 <p align="center"><sub>Animated demo with sample data.</sub></p>
 
@@ -88,7 +90,11 @@ Any other URL is treated as a generic webhook: it gets a JSON POST with `title`,
 
 ## How it works
 
-<p align="center"><img src="assets/how-it-works.en.svg" alt="The phone reaches a gateway on the computer through a Cloudflare tunnel; the gateway checks pairing and forwards to the DSH web UI" width="760" /></p>
+<p align="center">
+
+![The phone reaches a gateway on the computer through a Cloudflare tunnel; the gateway checks pairing and forwards to the DSH web UI](assets/how-it-works.en.svg)
+
+</p>
 
 The plugin runs a small gateway inside DSH (port 18765 by default) and forwards the phone's requests to DSH's own web UI on the computer. The phone runs the official DSH web UI, so sessions and settings are exactly what you have on the computer.
 
