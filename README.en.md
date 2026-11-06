@@ -6,7 +6,7 @@
   <a href="https://github.com/OrderG-X/dsh-mobile/releases"><img src="https://img.shields.io/github/v/release/OrderG-X/dsh-mobile?label=release&color=4D6BFE" alt="release" /></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" />
   <a href="https://github.com/awesome-dsh-plugin/awesome-dsh-plugin"><img src="https://img.shields.io/badge/DSH-plugin-4D6BFE" alt="DSH plugin" /></a>
-  <img src="https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white" alt="macOS" />
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-000000" alt="macOS | Windows | Linux" />
   <img src="https://img.shields.io/badge/no%20app-no%20account-3fb950" alt="No app, no account" />
 </p>
 
@@ -23,7 +23,7 @@
 >
 > **Use it for:** "I'm heading out and want to keep an eye on the task", "reply or approve while I'm away from the computer".
 >
-> **Install:** on the DSH Plugins page, click Add plugin and enter `@orderg-x/dsh-mobile` (an npm package), then restart DSH. Tested on macOS only so far.
+> **Install:** on the DSH Plugins page, click Add plugin and enter `@orderg-x/dsh-mobile` (an npm package), then restart DSH. Works on macOS, Windows and Linux.
 
 <p align="center">
   <img src="assets/demo.en.gif" alt="Turn on phone access on the computer, scan with the phone, reply from the phone; both stay in sync" width="880" />
@@ -166,7 +166,7 @@ No. Nothing works while the computer sleeps or DSH is closed.
 
 - The phone shows DSH's web UI: the side panels slide over the page and close when you tap outside; nothing else is re-laid out for phones.
 - Outside access uses Cloudflare's free quick tunnels, which have no uptime guarantee.
-- Tested with DSH desktop on macOS only; the cloudflared download paths for Windows and Linux are written but untested.
+- macOS, Windows and Linux are tested end to end every day (install DSH → pair by QR → cloudflared downloaded and tunnel started → same address after a restart); day-to-day use is mostly DSH desktop on macOS.
 
 ## Development
 
