@@ -12,6 +12,7 @@ import { createGateway, COOKIE, upstreamHeaders, downstreamHeaders, phoneCookies
 import crypto from 'node:crypto'
 import zlib from 'node:zlib'
 import { BOOT_TAG, injectBoot } from '../lib/pages.js'
+import { iconPng } from '../lib/icon.js'
 
 const TOKEN = 'launch-token-xyz'
 const BIG_HTML = '<!doctype html><html><head><title>big</title></head><body>' + 'x'.repeat(5 * 1024 * 1024) + '</body></html>'
@@ -600,4 +601,76 @@ test('添加到主屏幕：manifest 和图标不用配对就给；首页带上�
   assert.match(boot.text, /max-width: 760px/)
   assert.match(boot.text, /data-sidebar-collapsed/)
   new Function(boot.text) // 语法没问题
+})
+
+test('自定义主屏图标：数据目录放 icon.png 就用它；不合格或删掉就回到默认（#2）', async (t) => {
+  const { dir, port, pair, logs } = await setup(t)
+  const getIcon = (size, q = '') => new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: `/__dshm/icon-${size}.png${q}`, headers: { host: `192.168.1.5:${port}` } }, (res) => {
+    const chunks = []
+    res.on('data', (c) => chunks.push(c))
+    res.on('end', () => resolve({ status: res.statusCode, cache: res.headers['cache-control'], body: Buffer.concat(chunks) }))
+  }))
+  const versionOf = async () => {
+    const c = await pair()
+    const page = await request(port, { headers: { accept: 'text/html', 'sec-fetch-dest': 'document', cookie: c } })
+    const v = /apple-touch-icon" href="\/__dshm\/icon-180\.png\?v=([^"]+)"/.exec(page.text)
+    const man = JSON.parse((await request(port, { path: '/__dshm/manifest.webmanifest' })).text)
+    assert.ok(v, '首页的图标地址带版本号')
+    assert.ok(man.icons.every((i) => i.src.endsWith(`?v=${v[1]}`)), 'manifest 里的图标和首页同一个版本')
+    return v[1]
+  }
+  const def = await getIcon(180)
+  assert.match(def.cache, /max-age=86400/) // 默认图标可以长缓存
+  const v0 = await versionOf()
+
+  // 放一张自定义的（随便一个合法的 PNG：拿 512 的默认图标改一个字节当「另一张图」）
+  const mine = Buffer.from(iconPng(512))
+  mine[mine.length - 20] ^= 1
+  const file = path.join(dir, 'icon.png')
+  fs.writeFileSync(file, mine)
+  for (const size of [180, 192, 512]) {
+    const r = await getIcon(size, '?v=whatever')
+    assert.equal(r.status, 200)
+    assert.ok(r.body.equals(mine), `${size}：给的是自定义那张`)
+    assert.equal(r.cache, 'no-cache')
+  }
+  const v1 = await versionOf()
+  assert.notEqual(v1, v0, '换了图标，地址版本跟着变')
+
+  // 不是 PNG：不用，记一句；同一个文件不反复记
+  fs.writeFileSync(file, 'not a png at all, just text')
+  const bad = await getIcon(180)
+  assert.ok(bad.body.equals(def.body), '不是 PNG 就用默认的')
+  await getIcon(192)
+  assert.equal(logs.filter((m) => m.includes('不是 PNG')).length, 1, logs.join('\n'))
+
+  // 超过 2 MB：不用
+  const big = Buffer.concat([mine, Buffer.alloc(2 * 1024 * 1024)])
+  fs.writeFileSync(file, big)
+  assert.ok((await getIcon(180)).body.equals(def.body), '太大就用默认的')
+  assert.ok(logs.some((m) => m.includes('超过 2 MB')))
+
+  // 删掉：回到默认，版本也回去
+  fs.rmSync(file)
+  assert.ok((await getIcon(180)).body.equals(def.body))
+  assert.equal(await versionOf(), v0)
+})
+
+test('默认图标：不透明、四角是背景色、中间是白色机身', () => {
+  const png = iconPng(64)
+  assert.equal(png.readUInt32BE(16), 64)
+  // 解出像素看几个点（RGBA、不做行过滤）
+  const idat = []
+  for (let o = 8; o < png.length;) {
+    const len = png.readUInt32BE(o)
+    const type = png.toString('ascii', o + 4, o + 8)
+    if (type === 'IDAT') idat.push(png.subarray(o + 8, o + 8 + len))
+    o += 12 + len
+  }
+  const raw = zlib.inflateSync(Buffer.concat(idat))
+  const px = (x, y) => [...raw.subarray(y * (64 * 4 + 1) + 1 + x * 4, y * (64 * 4 + 1) + 1 + x * 4 + 4)]
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) assert.equal(px(x, y)[3], 255)
+  const corner = px(0, 0)
+  assert.ok(corner[2] > 200 && corner[0] < 120, `左上角是蓝的 ${corner}`)
+  assert.deepEqual(px(32, 13).slice(0, 3), [255, 255, 255]) // 机身上边框
 })

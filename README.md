@@ -162,6 +162,17 @@ DSH 重启不用。电脑重启、关掉「允许手机访问」、在 DSH 里�
 </details>
 
 <details>
+<summary><b>桌面图标能换成自己的图吗？</b></summary>
+
+能。把一张 PNG 存成电脑上的 `~/.dsh/dsh-mobile/icon.png`（Windows 是 `%USERPROFILE%\.dsh\dsh-mobile\icon.png`；设过 `DSH_HOME` 的话在它下面的 `dsh-mobile` 里），不用重启 DSH。
+
+- 建议 1024×1024、不透明，iPhone 会把透明的地方填成黑色。文件不超过 2 MB。
+- 手机上已经加过的图标不会自己变：iPhone 只在「添加到主屏幕」那一刻取图标，要先删掉桌面图标再加一次。
+- 删掉这个文件就回到默认图标。插件升级不会动这个文件。
+
+</details>
+
+<details>
 <summary><b>电脑睡着了还能连吗？</b></summary>
 
 不能。电脑睡眠或 DSH 关着时连不上。

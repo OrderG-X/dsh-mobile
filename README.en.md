@@ -162,6 +162,17 @@ Yes. On iPhone open the address in Safari, tap Share → Add to Home Screen; on 
 </details>
 
 <details>
+<summary><b>Can I use my own home screen icon?</b></summary>
+
+Yes. Save a PNG on the computer as `~/.dsh/dsh-mobile/icon.png` (on Windows `%USERPROFILE%\.dsh\dsh-mobile\icon.png`; if you set `DSH_HOME`, the `dsh-mobile` folder under it). No DSH restart needed.
+
+- Use 1024×1024 and no transparency: iPhone fills transparent areas with black. The file must be 2 MB or less.
+- An icon already on the phone won't change by itself. iPhone only fetches the icon at Add to Home Screen, so remove it from the home screen and add it again.
+- Delete the file to go back to the default icon. Plugin updates don't touch it.
+
+</details>
+
+<details>
 <summary><b>Does it work while the computer sleeps?</b></summary>
 
 No. Nothing works while the computer sleeps or DSH is closed.
